@@ -1,8 +1,8 @@
 // Alle Schreibzugriffe. Jede Buchung ändert den Kontostand in derselben Transaktion.
-import { monthBookings } from "./budget";
+import { budgetMonthOf, dueRecurring, effectivePayday, recKey } from "./budget";
 import { STORES, tx, type Tx } from "./db";
-import { today } from "./format";
-import type { Account, Backup, Booking, PlanItem, Recurring, TxKind } from "./types";
+import { addMonths, today } from "./format";
+import type { Account, Backup, Booking, PlanItem, Recurring, Settings, TxKind } from "./types";
 
 // --- Konten ---
 
@@ -86,26 +86,48 @@ export async function deleteRecurring(id: number) {
   await tx(["recurring"], "readwrite", (t) => t.delete("recurring", id));
 }
 
-const bookedKey = (month: string) => `booked:${month}`;
+// --- Einstellungen und automatische Buchungen ---
 
-export async function isMonthBooked(month: string): Promise<boolean> {
-  return tx(["meta"], "readonly", async (t) => Boolean(await t.get("meta", bookedKey(month))));
+export async function loadSettings(): Promise<Settings> {
+  return tx(["meta"], "readonly", async (t) => ((await t.get<Settings>("meta", "settings")) ?? {}));
 }
 
-/** Bucht Gehalt und Fixkosten eines Monats auf die Konten. Pro Monat nur einmal. */
-export async function bookMonth(month: string): Promise<number> {
+export async function saveSettings(patch: Partial<Settings>) {
+  await tx(["meta"], "readwrite", async (t) => {
+    const old = (await t.get<Settings>("meta", "settings")) ?? {};
+    await t.put("meta", { ...old, ...patch }, "settings");
+  });
+}
+
+/**
+ * Bucht Gehalt und Fixkosten, sobald sie fällig sind. Beim ersten Mal wird nur das Startdatum gesetzt:
+ * Alles bis heute steckt schon im eingetragenen Kontostand und wird nicht nachgebucht.
+ */
+export async function syncRecurring(now = today()): Promise<number> {
+  const s = await loadSettings();
+  if (!s.start_date) { await saveSettings({ start_date: now }); return 0; }
+  const startDate = s.start_date;
   return tx(["accounts", "bookings", "recurring", "meta"], "readwrite", async (t) => {
-    if (await t.get("meta", bookedKey(month))) throw new Error("Dieser Monat ist bereits gebucht.");
-    const list = monthBookings(await t.all<Recurring>("recurring"), month);
-    if (!list.length) throw new Error("Es gibt noch kein Gehalt und keine Fixkosten.");
-    for (const b of list) {
-      const acc = await t.get<Account>("accounts", b.account_id);
-      if (!acc) continue;
-      await t.put("accounts", { ...acc, balance_cents: acc.balance_cents + b.amount_cents });
-      await t.add("bookings", b);
+    const recurring = await t.all<Recurring>("recurring");
+    const payday = effectivePayday(s, recurring);
+    const done = new Set<string>();
+    for (const [k] of await t.entries("meta")) done.add(String(k));
+    let n = 0;
+    let month = budgetMonthOf(startDate, payday);
+    const last = budgetMonthOf(now, payday);
+    for (let i = 0; i < 36 && month <= last; i++, month = addMonths(month, 1)) {
+      if (done.has(`booked:${month}`)) continue; // ältere Version: ganzer Monat schon gebucht
+      for (const { r, date } of dueRecurring(recurring, month, payday, now, startDate, done)) {
+        const acc = await t.get<Account>("accounts", r.account_id);
+        if (!acc) continue;
+        const amount = r.type === "einnahme" ? r.amount_cents : -r.amount_cents;
+        await t.put("accounts", { ...acc, balance_cents: acc.balance_cents + amount });
+        await t.add("bookings", { account_id: r.account_id, date, amount_cents: amount, note: r.name, kind: r.type === "einnahme" ? "gehalt" : "fix", plan_id: null, month });
+        await t.put("meta", date, recKey(month, r.id));
+        n++;
+      }
     }
-    await t.put("meta", new Date().toISOString(), bookedKey(month));
-    return list.length;
+    return n;
   });
 }
 

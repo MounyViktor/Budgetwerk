@@ -136,6 +136,7 @@ export function TransferForm({ accounts, from: initialFrom, to: initialTo }: { a
 
 // --- Gehalt / Fixkosten ---
 
+export const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 export const FIX_CATEGORIES = ["Wohnen", "Verträge", "Versicherungen", "Mobilität", "Abos", "Kredite", "Sonstiges"];
 
 export function RecurringForm({ accounts, type, item }: { accounts: Account[]; type: Recurring["type"]; item?: Recurring }) {
@@ -146,11 +147,15 @@ export function RecurringForm({ accounts, type, item }: { accounts: Account[]; t
   const [account, setAccount] = useState<number | null>(item?.account_id ?? accounts.find((a) => a.kind === "giro")?.id ?? accounts[0]?.id ?? null);
   const [day, setDay] = useState(String(item?.day ?? (type === "einnahme" ? 28 : 1)));
   const [category, setCategory] = useState(item?.category ?? (type === "einnahme" ? "Gehalt" : "Wohnen"));
+  const [interval, setIv] = useState<"monat" | "jahr">(item?.interval ?? "monat");
+  const [moy, setMoy] = useState(item?.month_of_year ?? new Date().getMonth() + 1);
+  const c = cents(amount);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
       const d = Math.max(1, Math.min(31, Number(day) || 1));
-      await saveRecurring({ id: item?.id, type, name: name.trim(), amount_cents: cents(amount), account_id: account ?? 0, day: d, category, active: item?.active ?? true });
+      await saveRecurring({ id: item?.id, type, name: name.trim(), amount_cents: c, account_id: account ?? 0, day: d, category, active: item?.active ?? true,
+        interval, month_of_year: interval === "jahr" ? moy : undefined });
       close();
       return "Gespeichert.";
     });
@@ -161,9 +166,28 @@ export function RecurringForm({ accounts, type, item }: { accounts: Account[]; t
         <label htmlFor="rc-name">Bezeichnung</label>
         <input id="rc-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "einnahme" ? "Gehalt" : "z. B. Miete"} />
       </div>
-      <MoneyInput label={type === "einnahme" ? "Netto pro Monat" : "Betrag pro Monat"} value={amount} onChange={setAmount} />
+      <div className="seg">
+        <button type="button" className={interval === "monat" ? "on" : ""} onClick={() => setIv("monat")}>Monatlich</button>
+        <button type="button" className={interval === "jahr" ? "on" : ""} onClick={() => setIv("jahr")}>Jährlich</button>
+      </div>
+      <MoneyInput label={interval === "jahr" ? "Betrag pro Jahr" : type === "einnahme" ? "Netto pro Monat" : "Betrag pro Monat"} value={amount} onChange={setAmount} />
+      {c > 0 && (
+        <p className="hint calc">
+          {interval === "jahr"
+            ? <>= <b>{euro(Math.round(c / 12))}</b> pro Monat, die du dafür zurücklegst</>
+            : <>= <b>{euro(c * 12)}</b> im Jahr</>}
+        </p>
+      )}
       <AccountSelect label={type === "einnahme" ? "Geht ein auf" : "Wird abgebucht von"} accounts={accounts} value={account} onChange={setAccount} />
       <div className="grid2">
+        {interval === "jahr" && (
+          <div className="field">
+            <label htmlFor="rc-moy">Fällig im</label>
+            <select id="rc-moy" value={moy} onChange={(e) => setMoy(Number(e.target.value))}>
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label htmlFor="rc-day">Am Tag</label>
           <input id="rc-day" type="text" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))} />

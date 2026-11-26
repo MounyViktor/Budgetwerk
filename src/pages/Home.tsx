@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { BankCard } from "../components/BankCard";
 import { AccountForm } from "../components/Forms";
-import { monthSummary, netWorth, ratio, totalsByKind } from "../lib/budget";
-import { currentMonth, euro, monthLabel } from "../lib/format";
+import { monthSummary, netWorth, periodOf, ratio, totalsByKind } from "../lib/budget";
+import { dateLabel, euro, monthLabel } from "../lib/format";
 import { loadAll } from "../lib/load";
-import { bookMonth, loadDemo } from "../lib/store";
-import { Bar, Donut, Link, Money, Sheet, useAction, useConfetti, useData } from "../ui";
+import { loadDemo } from "../lib/store";
+import { Bar, Donut, Link, Money, Sheet, useAction, useData } from "../ui";
 
 export const COLORS = { fix: "#FF6B8B", spend: "#8C6CFF", save: "#3EF0B1", free: "#FFC857" };
 
@@ -13,10 +13,9 @@ export function Home() {
   const data = useData(loadAll);
   const [newAcc, setNewAcc] = useState(false);
   const { busy, run } = useAction();
-  const confetti = useConfetti();
   if (!data) return null;
-  const month = currentMonth();
-  const { accounts, recurring, plan, bookings, booked } = data;
+  const { accounts, recurring, plan, bookings, month, payday } = data;
+  const period = periodOf(month, payday);
   const s = monthSummary(recurring, plan, bookings, month);
   const kinds = totalsByKind(accounts);
   const savers = accounts.filter((a) => a.kind === "spar");
@@ -46,7 +45,6 @@ export function Home() {
     { label: "Sparen", value: s.plannedSave, color: COLORS.save },
     { label: "Noch frei", value: Math.max(0, s.rest), color: COLORS.free },
   ];
-  const canBook = recurring.some((r) => r.active) && !booked.has(month);
 
   return (
     <div className="stagger">
@@ -65,17 +63,7 @@ export function Home() {
         <button className="slide addcard" onClick={() => setNewAcc(true)}><span>＋</span>Konto</button>
       </div>
 
-      {canBook && (
-        <div className="notice glow">
-          <strong>{monthLabel(month)}:</strong> Gehalt und Fixkosten sind noch nicht auf die Konten gebucht.
-          <button className="small" disabled={busy} onClick={(e) => {
-            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            void run(async () => { const n = await bookMonth(month); confetti(r.left + r.width / 2, r.top); return `${n} Buchungen erstellt.`; });
-          }}>Jetzt buchen</button>
-        </div>
-      )}
-
-      <h2>{monthLabel(month)}</h2>
+      <h2 className="withsub">{monthLabel(month)}<small>{dateLabel(period.start)} – {dateLabel(period.end)}</small></h2>
       <Link to="/planen" className="card plain monthcard">
         <Donut parts={parts}>
           <small>Noch frei</small>

@@ -1,4 +1,5 @@
-import { currentMonth, today } from "../lib/format";
+import { today } from "../lib/format";
+import { loadAll } from "../lib/load";
 import { isInstalled, isIos, saveFile } from "../lib/device";
 import { exportBackup, importBackup, loadDemo, wipeAll } from "../lib/store";
 import { BANKS } from "../lib/banks";
@@ -51,7 +52,7 @@ export function More() {
       <div className="card">
         <h3>Ausprobieren</h3>
         <div className="actions">
-          <button className="secondary" disabled={busy} onClick={() => run(async () => { await loadDemo(currentMonth()); return "Beispieldaten hinzugefügt."; })}>Beispieldaten laden</button>
+          <button className="secondary" disabled={busy} onClick={() => run(async () => { await loadDemo((await loadAll()).month); return "Beispieldaten hinzugefügt."; })}>Beispieldaten laden</button>
           <button className="danger" disabled={busy} onClick={() => {
             if (!window.confirm("Wirklich alle Konten, Buchungen und Pläne löschen?")) return;
             void run(async () => { await wipeAll(); return "Alles gelöscht."; });

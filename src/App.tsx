@@ -6,7 +6,8 @@ import { FixedPage } from "./pages/Fixed";
 import { Home } from "./pages/Home";
 import { More } from "./pages/More";
 import { PlanPage } from "./pages/Plan";
-import { ToastProvider, useRoute } from "./ui";
+import { syncRecurring } from "./lib/store";
+import { ToastProvider, useRoute, useToast } from "./ui";
 
 const TABS = [
   { to: "/", label: "Übersicht", icon: <><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></>, match: (r: string) => r === "/" },
@@ -44,11 +45,25 @@ function InstallHint() {
   );
 }
 
+/** Bucht fällige Gehälter und Fixkosten beim Öffnen und wenn die App wieder in den Vordergrund kommt. */
+function AutoSync() {
+  const toast = useToast();
+  useEffect(() => {
+    const run = () => syncRecurring().then((n) => { if (n) toast(`${n} fällige ${n === 1 ? "Buchung" : "Buchungen"} automatisch erstellt.`); }).catch(() => undefined);
+    void run();
+    const vis = () => { if (document.visibilityState === "visible") void run(); };
+    document.addEventListener("visibilitychange", vis);
+    return () => document.removeEventListener("visibilitychange", vis);
+  }, [toast]);
+  return null;
+}
+
 export function App() {
   const route = useRoute();
   useEffect(() => { void requestPersistence(); }, []);
   return (
     <ToastProvider>
+      <AutoSync />
       <div className="bg" aria-hidden="true"><i /><i /><i /></div>
       <main>
         <InstallHint />

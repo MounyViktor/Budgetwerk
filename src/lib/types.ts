@@ -25,6 +25,17 @@ export interface Recurring {
   day: number;
   category: string;
   active: boolean;
+  /** Fehlt bei älteren Einträgen und heißt dann "monat" */
+  interval?: "monat" | "jahr";
+  /** Nur bei jährlich: Monat der Fälligkeit, 1–12 */
+  month_of_year?: number;
+}
+
+export interface Settings {
+  /** Gehaltstag, ab dem der Budgetmonat beginnt. null = Kalendermonat, undefined = automatisch aus dem Gehalt */
+  payday?: number | null;
+  /** Ab diesem Tag wird automatisch gebucht. Was davor lag, steckt schon im Kontostand. */
+  start_date?: string | null;
 }
 
 /** Ein Posten im Monatsplan: wofür das freie Geld ausgegeben oder wohin es gespart wird. */

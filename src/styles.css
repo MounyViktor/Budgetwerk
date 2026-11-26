@@ -348,3 +348,17 @@ details.bk[open] summary { border-bottom-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Budgetmonat und Jahreskosten */
+h2.withsub small, .monthnav strong small { display: block; font-family: "Archivo Variable", system-ui, sans-serif; font-size: 13px; font-weight: 400; letter-spacing: 0; opacity: .75; }
+.monthnav strong { text-align: center; }
+.flowrow.sub { font-size: 14px; color: var(--muted); padding: 2px 0; }
+.yearcard .stat { font-size: 26px; }
+.yearcard > .spread { margin-bottom: 6px; }
+.cycle .emoji { width: 44px; height: 44px; border-radius: 14px; background: var(--soft); display: grid; place-items: center; font-size: 22px; flex: 0 0 auto; }
+.cyclebody { margin-top: 14px; animation: rise .35s var(--ease) both; }
+.cyclebody .hint { margin-bottom: 10px; }
+.amt { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.amt small { font-size: 11px; }
+.badge.tiny { font-size: 10px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; background: rgba(140, 108, 255, .15); color: var(--violet-dark); }
+.hint.calc { margin: -8px 0 14px; }

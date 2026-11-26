@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { BankCard } from "../components/BankCard";
 import { TransferForm } from "../components/Forms";
-import { centsToInput, currentMonth, dateLabel, euro, parseEuro } from "../lib/format";
+import { centsToInput, dateLabel, euro, parseEuro } from "../lib/format";
 import { loadAll } from "../lib/load";
 import { addBooking, deleteBooking, saveAccount, spendOnPlan } from "../lib/store";
 import { vibrate } from "../lib/device";
@@ -37,7 +37,7 @@ export function CashPage() {
     );
   }
 
-  const month = currentMonth();
+  const month = data.month;
   const planItems = data.plan.filter((p) => p.month === month && p.type === "ausgabe");
   const list = data.bookings.filter((b) => b.account_id === wallet.id);
   const c = parseEuro(amount) ?? 0;

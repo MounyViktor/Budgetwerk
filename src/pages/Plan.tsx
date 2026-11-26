@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlanForm, SpendForm, useSaveNow } from "../components/Forms";
-import { monthSummary } from "../lib/budget";
-import { addMonths, currentMonth, euro, monthLabel } from "../lib/format";
+import { monthSummary, periodOf } from "../lib/budget";
+import { addMonths, dateLabel, euro, monthLabel } from "../lib/format";
 import { loadAll } from "../lib/load";
 import { copyPlan, deletePlanItem } from "../lib/store";
 import type { PlanItem } from "../lib/types";
@@ -12,19 +12,21 @@ type SheetState = { kind: "form"; type: PlanItem["type"]; item?: PlanItem } | { 
 
 export function PlanPage() {
   const data = useData(loadAll);
-  const [month, setMonth] = useState(currentMonth());
+  const [picked, setMonth] = useState<string | null>(null);
   const [dir, setDir] = useState<"l" | "r">("r");
   const [sheet, setSheet] = useState<SheetState>(null);
   const { busy, run } = useAction();
   const saveNow = useSaveNow();
   if (!data) return null;
-  const { accounts, recurring, plan, bookings } = data;
+  const { accounts, recurring, plan, bookings, payday } = data;
+  const month = picked ?? data.month;
+  const period = periodOf(month, payday);
   const s = monthSummary(recurring, plan, bookings, month);
   const items = plan.filter((p) => p.month === month);
   const saves = items.filter((p) => p.type === "sparen");
   const spends = items.filter((p) => p.type === "ausgabe");
   const acc = (id: number | null) => accounts.find((a) => a.id === id);
-  const shift = (n: number) => { setDir(n > 0 ? "r" : "l"); setMonth((m) => addMonths(m, n)); };
+  const shift = (n: number) => { setDir(n > 0 ? "r" : "l"); setMonth(addMonths(month, n)); };
 
   if (!accounts.length) {
     return <div className="stagger"><h1>Planen</h1><Empty icon="🏦" title="Zuerst ein Konto anlegen"><Link to="/konten">Zu den Konten</Link></Empty></div>;
@@ -35,13 +37,13 @@ export function PlanPage() {
       <h1>Planen</h1>
       <div className="monthnav">
         <button className="ghost" onClick={() => shift(-1)} aria-label="Vormonat">‹</button>
-        <strong key={month} className={`slide-${dir}`}>{monthLabel(month)}</strong>
+        <strong key={month} className={`slide-${dir}`}>{monthLabel(month)}<small>{dateLabel(period.start)} – {dateLabel(period.end)}</small></strong>
         <button className="ghost" onClick={() => shift(1)} aria-label="Nächster Monat">›</button>
       </div>
 
       <div className="card planhero" key={`hero-${month}`}>
         <div className="spread">
-          <div><div className="muted small">Frei verfügbar</div><div className="stat"><Money cents={s.free} /></div></div>
+          <div><div className="muted small">Frei verfügbar{s.fixedYearlyShare > 0 ? "*" : ""}</div><div className="stat"><Money cents={s.free} /></div></div>
           <div className="right"><div className="muted small">Noch unverplant</div><div className={`stat ${s.rest < 0 ? "neg" : "pos"}`}><Money cents={s.rest} /></div></div>
         </div>
         <div className="stack" aria-hidden="true">
@@ -53,6 +55,7 @@ export function PlanPage() {
           <span><i style={{ background: COLORS.spend }} />Ausgaben {euro(s.plannedSpend)}</span>
           <span><i style={{ background: COLORS.save }} />Sparen {euro(s.plannedSave)}</span>
         </div>
+        {s.fixedYearlyShare > 0 && <p className="hint">* nach {euro(s.fixedYearlyShare)} Rücklage für jährliche Fixkosten</p>}
         {s.free <= 0 && <p className="hint">Trag unter <Link to="/fix">Fix</Link> dein Gehalt und deine Fixkosten ein, dann siehst du hier, wie viel frei ist.</p>}
         {s.rest < 0 && <p className="hint err">Überplant um {euro(-s.rest)}.</p>}
       </div>
