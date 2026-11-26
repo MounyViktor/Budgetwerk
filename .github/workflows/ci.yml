@@ -1,0 +1,24 @@
+name: Build und Tests
+
+# Veröffentlicht wird über Cloudflare Pages (mit diesem Repo verbunden).
+# Dieser Lauf prüft nur, dass Tests und Build bei jedem Push grün sind.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build

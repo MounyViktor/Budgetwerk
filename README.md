@@ -21,11 +21,18 @@ Die Banken erscheinen als farbige Abzeichen in den Markenfarben. Echte Logos las
 Datei nach `public/banks/` legen (z. B. `sparkasse.svg`) und in `src/lib/banks.ts` bei der Bank `logo: "banks/sparkasse.svg"` eintragen.
 Logos sind Marken der jeweiligen Banken – nur verwenden, wenn die Nutzung erlaubt ist (privat meist unproblematisch).
 
-## Veröffentlichen
+## Veröffentlichen (Cloudflare Pages)
 
-Jeder Push auf `main` baut die App über GitHub Actions (`.github/workflows/deploy.yml`) und veröffentlicht `dist` auf GitHub Pages.
-GitHub Pages aus einem **privaten** Repo braucht GitHub Pro. Ohne Pro: bei Cloudflare Pages ein Projekt mit diesem Repo verbinden,
-Build-Befehl `npm run build`, Ausgabeordner `dist`. Die Adresse dauerhaft behalten – der Speicher auf dem iPhone gehört zur Adresse.
+Die App läuft wie Teilewerk über Cloudflare Pages. Einmal einrichten:
+
+1. Cloudflare Dashboard → **Workers & Pages** → **Erstellen** → **Pages** → **Mit Git verbinden**.
+2. GitHub verbinden und dabei Zugriff auf das private Repo **Budgetwerk** erlauben.
+3. Projektname `budgetwerk`, Branch `main`, Framework-Voreinstellung **Keine**,
+   Build-Befehl `npm run build`, Ausgabeverzeichnis `dist`.
+
+Danach baut Cloudflare jeden Push auf `main` neu. `.npmrc` und `.node-version` sorgen dafür, dass der Build dort genauso läuft wie lokal.
+GitHub Actions (`.github/workflows/ci.yml`) prüft bei jedem Push nur Tests und Build.
+Die Adresse dauerhaft behalten – der Speicher auf dem iPhone gehört zur Adresse.
 
 Auf dem iPhone: Adresse in Safari öffnen → Teilen → „Zum Home-Bildschirm“ und Budgetwerk danach nur über das Icon öffnen.
 
