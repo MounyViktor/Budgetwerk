@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { bank as bankOf } from "./lib/banks";
 import { onChange } from "./lib/db";
 import { euro, parseEuro, centsToInput } from "./lib/format";
@@ -228,14 +229,16 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     setTimeout(onClose, 220);
   };
   if (!open) return null;
-  return (
+  // Direkt an <body>: iOS Safari setzt "position: fixed" sonst relativ zur animierten Seite statt zum Bildschirm.
+  return createPortal(
     <div className={`sheet-wrap${closing ? " closing" : ""}`} onClick={close}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="grip" aria-hidden="true" />
         <div className="spread"><h3>{title}</h3><button type="button" className="ghost" onClick={close} aria-label="Schließen">✕</button></div>
         <SheetClose.Provider value={close}>{children}</SheetClose.Provider>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 const SheetClose = createContext<() => void>(() => undefined);

@@ -275,6 +275,8 @@ details.bk[open] summary { border-bottom-color: transparent; }
 .seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--soft); margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
 .seg button { flex: 1 0 auto; min-height: 38px; padding: 6px 12px; font-size: 14px; background: transparent; border-color: transparent; color: var(--ink); font-weight: 500; }
 .seg button.on { background: #fff; box-shadow: 0 2px 8px rgba(10, 22, 51, .14); font-weight: 700; }
+.seg.grid { display: grid; grid-template-columns: 1fr 1fr; border-radius: 20px; }
+.seg.grid button { border-radius: 16px; }
 .onbgseg { background: rgba(255, 255, 255, .12); }
 .onbgseg button { color: var(--white); }
 .onbgseg button.on { color: var(--ink); }
@@ -324,7 +326,7 @@ details.bk[open] summary { border-bottom-color: transparent; }
 
 /* Blatt von unten */
 .sheet-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(5, 12, 30, .5); display: flex; align-items: flex-end; justify-content: center; animation: fade .25s both; }
-.sheet { width: 100%; max-width: 640px; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--white); border-radius: 28px 28px 0 0;
+.sheet { width: 100%; max-width: 640px; max-height: calc(100dvh - env(safe-area-inset-top) - 16px); overflow-y: auto; overscroll-behavior: contain; background: var(--white); border-radius: 28px 28px 0 0;
   padding: 8px 18px calc(env(safe-area-inset-bottom) + 20px); animation: sheetUp .42s var(--spring) both; box-shadow: 0 -10px 40px rgba(0, 0, 0, .3); }
 .sheet .grip { width: 40px; height: 5px; border-radius: 9px; background: var(--line); margin: 2px auto 8px; }
 .sheet h3 { margin: 0; }

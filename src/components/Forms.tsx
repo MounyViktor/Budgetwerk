@@ -53,11 +53,11 @@ export function AccountForm({ account, presetBank }: { account?: Account; preset
       </div>
       <div className="field">
         <label htmlFor="acc-name">Name</label>
-        <input id="acc-name" type="text" value={name} onChange={(e) => { setName(e.target.value); setTouchedName(true); }} />
+        <input id="acc-name" type="text" placeholder="z. B. Gehaltskonto" value={name} onChange={(e) => { setName(e.target.value); setTouchedName(true); }} />
       </div>
       <div className="field">
         <label>Art</label>
-        <div className="seg">
+        <div className="seg grid">
           {(Object.keys(KIND_LABEL) as AccountKind[]).map((k) => (
             <button type="button" key={k} className={kind === k ? "on" : ""} onClick={() => setKind(k)}>{KIND_LABEL[k]}</button>
           ))}
