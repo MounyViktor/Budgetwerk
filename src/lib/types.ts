@@ -67,9 +67,47 @@ export interface Booking {
   month?: string | null;
 }
 
+// --- Aufgaben und Zeitplanung ---
+
+export type Repeat = "nie" | "taeglich" | "werktags" | "woechentlich" | "monatlich" | "jaehrlich";
+
+export interface Subtask { id: string; title: string; done: boolean }
+
+export interface Project {
+  id: number;
+  name: string;
+  emoji: string;
+  color: string;
+  order?: number;
+}
+
+export interface Task {
+  id: number;
+  title: string;
+  notes: string;
+  kind: "aufgabe" | "termin";
+  project_id: number | null;
+  /** JJJJ-MM-TT oder null für "irgendwann" */
+  date: string | null;
+  /** HH:MM oder null für "ganztägig" */
+  time: string | null;
+  duration_min: number | null;
+  /** 0 keine, 1 niedrig, 2 mittel, 3 hoch */
+  priority: 0 | 1 | 2 | 3;
+  repeat: Repeat;
+  subtasks: Subtask[];
+  done: boolean;
+  completed_at: string | null;
+  /** Mit dem Fokus-Timer verbrachte Minuten */
+  focus_min: number;
+  created_at: string;
+}
+
 export interface Backup {
   format: "budgetwerk-backup";
-  version: 1;
+  version: 1 | 2;
+  tasks?: Task[];
+  projects?: Project[];
   created_at: string;
   accounts: Account[];
   recurring: Recurring[];

@@ -3,7 +3,7 @@ import { MONTHS, RecurringForm } from "../components/Forms";
 import { isYearly, monthSummary, periodOf, recurringStatus, yearlyFixed } from "../lib/budget";
 import { dateLabel, euro, monthLabel, today } from "../lib/format";
 import { loadAll } from "../lib/load";
-import { deleteRecurring, saveRecurring, saveSettings } from "../lib/store";
+import { bookRecurringNow, deleteRecurring, saveRecurring, saveSettings } from "../lib/store";
 import type { Recurring } from "../lib/types";
 import { BankLogo, Empty, Link, Money, Sheet, useAction, useData } from "../ui";
 import { COLORS } from "./Home";
@@ -43,6 +43,14 @@ export function FixedPage() {
           {a && <BankLogo id={a.bank} size={32} />}
           <span><strong>{r.name}</strong>{isYearly(r) && <span className="badge tiny">jährlich</span>}<br /><span className="muted small">{statusText(r)} · {a?.name ?? "Konto fehlt"}</span></span>
         </button>
+        {(() => {
+          const st = recurringStatus(r, month, payday, settings.start_date ?? null, done);
+          if (!r.active || st.kind !== "kontostand" || !a) return null;
+          return <button type="button" className="small secondary rebook" disabled={busy} onClick={() => {
+            if (!window.confirm(`${r.name} (${euro(r.amount_cents)}) jetzt auf ${a.name} buchen? Nur nötig, wenn es noch nicht im Kontostand steckt.`)) return;
+            void run(async () => { await bookRecurringNow(r, month, st.date!); return `${r.name} gebucht.`; });
+          }}>Nachbuchen</button>;
+        })()}
         <span className="row nowrap">
           <span className="amt">
             <b className={r.type === "einnahme" ? "pos" : ""}>{r.type === "einnahme" ? "+" : "−"}{euro(r.amount_cents)}</b>

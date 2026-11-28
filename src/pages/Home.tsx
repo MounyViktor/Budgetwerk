@@ -6,6 +6,7 @@ import { dateLabel, euro, monthLabel } from "../lib/format";
 import { loadAll } from "../lib/load";
 import { loadDemo } from "../lib/store";
 import { Bar, Donut, Link, Money, Sheet, useAction, useData } from "../ui";
+import { TodayCard } from "./Tasks";
 
 export const COLORS = { fix: "#FF6B8B", spend: "#8C6CFF", save: "#3EF0B1", free: "#FFC857" };
 
@@ -34,6 +35,7 @@ export function Home() {
             <button className="secondary" disabled={busy} onClick={() => run(async () => { await loadDemo(month); return "Beispieldaten geladen."; })}>Beispiel ansehen</button>
           </div>
         </div>
+        <TodayCard />
         <Sheet open={newAcc} onClose={() => setNewAcc(false)} title="Neues Konto"><AccountForm /></Sheet>
       </div>
     );
@@ -62,6 +64,8 @@ export function Home() {
         ))}
         <button className="slide addcard" onClick={() => setNewAcc(true)}><span>＋</span>Konto</button>
       </div>
+
+      <TodayCard />
 
       <h2 className="withsub">{monthLabel(month)}<small>{dateLabel(period.start)} – {dateLabel(period.end)}</small></h2>
       <Link to="/planen" className="card plain monthcard">

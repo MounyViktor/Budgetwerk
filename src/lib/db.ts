@@ -1,10 +1,10 @@
 // Lokaler Speicher (IndexedDB). Beträge immer in Cent. Nichts verlässt das Gerät.
 
 const DB_NAME = "budgetwerk";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-export type StoreName = "accounts" | "recurring" | "plan" | "bookings" | "meta";
-export const STORES: StoreName[] = ["accounts", "recurring", "plan", "bookings", "meta"];
+export type StoreName = "accounts" | "recurring" | "plan" | "bookings" | "meta" | "tasks" | "projects";
+export const STORES: StoreName[] = ["accounts", "recurring", "plan", "bookings", "meta", "tasks", "projects"];
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -22,6 +22,10 @@ function openDb(): Promise<IDBDatabase> {
         b.createIndex("account_id", "account_id");
         b.createIndex("plan_id", "plan_id");
         db.createObjectStore("meta");
+      }
+      if (e.oldVersion < 2) {
+        db.createObjectStore("tasks", { keyPath: "id", autoIncrement: true }).createIndex("date", "date");
+        db.createObjectStore("projects", { keyPath: "id", autoIncrement: true });
       }
     };
     r.onsuccess = () => {

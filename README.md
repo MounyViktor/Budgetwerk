@@ -11,6 +11,12 @@ Keine Bankverbindung: Konten werden von Hand angelegt, alle Daten bleiben auf de
 - **Planen:** Das freie Geld auf Posten (Lebensmittel, Tanken …) und Sparraten verteilen. Ausgaben je Posten erfassen,
   Sparrate per Knopf aufs Sparkonto umbuchen. Vormonat übernehmen.
 - **Bargeld:** Geldbeutel mit Schnellbeträgen, Ausgaben optional einem Planposten zuordnen, Abhebungen vom Girokonto.
+- **Aufgaben und Zeitplanung:** Aufgaben und Termine mit Datum, Uhrzeit, Dauer, Priorität, Projekt, Wiederholung
+  (täglich, werktags, wöchentlich, monatlich, jährlich), Unteraufgaben und Notizen.
+  Tagesplan mit Wochenleiste und Zeitleiste (Überschneidungen nebeneinander, Antippen legt einen Termin zur Uhrzeit an),
+  Liste nach Überfällig / Heute / Morgen / Woche / Später mit Suche und Projektfilter, Projekte mit Fortschritt.
+  Schnelleingabe versteht z. B. „Zahnarzt morgen 14:30 1h !! #privat“. Fokus-Timer zählt die gearbeitete Zeit.
+  „In Kalender“ erzeugt eine .ics-Datei mit Erinnerung für den iPhone-Kalender.
 - **Sicherung** als JSON-Datei speichern und wieder einspielen.
 - Animationen: zählende Beträge, Ring-Diagramm, kippende Kontokarten mit Glanz, Blätter von unten, Konfetti beim Sparen.
   Mit „Bewegung reduzieren“ in iOS werden sie abgeschaltet.

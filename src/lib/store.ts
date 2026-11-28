@@ -2,7 +2,8 @@
 import { budgetMonthOf, dueRecurring, effectivePayday, recKey } from "./budget";
 import { STORES, tx, type Tx } from "./db";
 import { addMonths, today } from "./format";
-import type { Account, Backup, Booking, PlanItem, Recurring, Settings, TxKind } from "./types";
+import { nextDate } from "./tasks";
+import type { Account, Backup, Booking, PlanItem, Project, Recurring, Settings, Task, TxKind } from "./types";
 
 // --- Konten ---
 
@@ -131,6 +132,19 @@ export async function syncRecurring(now = today()): Promise<number> {
   });
 }
 
+/** Einen Eintrag nachträglich buchen, z. B. das Gehalt, das beim Start noch nicht im Kontostand war. */
+export async function bookRecurringNow(r: Recurring, month: string, date: string) {
+  await tx(["accounts", "bookings", "meta"], "readwrite", async (t) => {
+    if (await t.get("meta", recKey(month, r.id))) throw new Error("Schon gebucht.");
+    const acc = await t.get<Account>("accounts", r.account_id);
+    if (!acc) throw new Error("Konto nicht gefunden.");
+    const amount = r.type === "einnahme" ? r.amount_cents : -r.amount_cents;
+    await t.put("accounts", { ...acc, balance_cents: acc.balance_cents + amount });
+    await t.add("bookings", { account_id: r.account_id, date, amount_cents: amount, note: r.name, kind: r.type === "einnahme" ? "gehalt" : "fix", plan_id: null, month });
+    await t.put("meta", date, recKey(month, r.id));
+  });
+}
+
 // --- Monatsplan ---
 
 export async function savePlanItem(p: Omit<PlanItem, "id"> & { id?: number }) {
@@ -180,6 +194,99 @@ export async function copyPlan(fromMonth: string, toMonth: string): Promise<numb
   });
 }
 
+// --- Aufgaben ---
+
+export type NewTask = Omit<Task, "id" | "created_at" | "done" | "completed_at" | "focus_min"> & Partial<Pick<Task, "id" | "done" | "completed_at" | "focus_min" | "created_at">>;
+
+export async function saveTask(task: NewTask): Promise<number> {
+  if (!task.title.trim()) throw new Error("Bitte einen Titel eingeben.");
+  if (task.repeat !== "nie" && !task.date) throw new Error("Für eine Wiederholung braucht die Aufgabe ein Datum.");
+  return tx(["tasks"], "readwrite", async (t) => {
+    const full = { done: false, completed_at: null, focus_min: 0, created_at: new Date().toISOString(), ...task, title: task.title.trim() };
+    if (task.id) { await t.put("tasks", full); return task.id; }
+    const { id: _i, ...rest } = full;
+    return Number(await t.add("tasks", rest));
+  });
+}
+
+export async function deleteTask(id: number) {
+  await tx(["tasks"], "readwrite", (t) => t.delete("tasks", id));
+}
+
+/**
+ * Abhaken. Bei Wiederholungen wird die erledigte Aufgabe abgelegt und gleich die nächste angelegt.
+ * Gibt das Datum der nächsten Wiederholung zurück.
+ */
+export async function toggleTask(id: number): Promise<string | null> {
+  return tx(["tasks"], "readwrite", async (t) => {
+    const task = await t.get<Task>("tasks", id);
+    if (!task) return null;
+    if (task.done) { await t.put("tasks", { ...task, done: false, completed_at: null }); return null; }
+    await t.put("tasks", { ...task, done: true, completed_at: new Date().toISOString() });
+    const next = task.date ? nextDate(task.date, task.repeat) : null;
+    if (next) {
+      const { id: _i, ...rest } = task;
+      await t.add("tasks", { ...rest, date: next, done: false, completed_at: null, focus_min: 0, subtasks: task.subtasks.map((x) => ({ ...x, done: false })), created_at: new Date().toISOString() });
+    }
+    return next;
+  });
+}
+
+export async function patchTask(id: number, patch: Partial<Task>) {
+  await tx(["tasks"], "readwrite", async (t) => {
+    const task = await t.get<Task>("tasks", id);
+    if (!task) throw new Error("Aufgabe nicht gefunden.");
+    await t.put("tasks", { ...task, ...patch, id });
+  });
+}
+
+/** Mehrere Aufgaben auf einen Tag schieben, z. B. alles Überfällige auf heute. */
+export async function moveTasks(ids: number[], date: string) {
+  await tx(["tasks"], "readwrite", async (t) => {
+    for (const id of ids) { const task = await t.get<Task>("tasks", id); if (task) await t.put("tasks", { ...task, date }); }
+  });
+}
+
+export async function clearDone(): Promise<number> {
+  return tx(["tasks"], "readwrite", async (t) => {
+    const done = (await t.all<Task>("tasks")).filter((x) => x.done);
+    for (const x of done) await t.delete("tasks", x.id);
+    return done.length;
+  });
+}
+
+export async function saveProject(p: Omit<Project, "id"> & { id?: number }): Promise<number> {
+  if (!p.name.trim()) throw new Error("Bitte einen Namen eingeben.");
+  return tx(["projects"], "readwrite", async (t) => {
+    if (p.id) { await t.put("projects", p); return p.id; }
+    const { id: _i, ...rest } = p;
+    return Number(await t.add("projects", { ...rest, order: (await t.all("projects")).length }));
+  });
+}
+
+export async function deleteProject(id: number) {
+  await tx(["projects", "tasks"], "readwrite", async (t) => {
+    for (const x of await t.all<Task>("tasks")) if (x.project_id === id) await t.put("tasks", { ...x, project_id: null });
+    await t.delete("projects", id);
+  });
+}
+
+export async function loadTasks(): Promise<{ tasks: Task[]; projects: Project[] }> {
+  return tx(["tasks", "projects"], "readonly", async (t) => ({
+    tasks: await t.all<Task>("tasks"),
+    projects: (await t.all<Project>("projects")).sort((a, b) => (a.order ?? a.id) - (b.order ?? b.id)),
+  }));
+}
+
+/** Findet ein Projekt per Name (für "#name" in der Schnelleingabe) oder legt es an. */
+export async function projectByName(name: string): Promise<number> {
+  const { projects } = await loadTasks();
+  const hit = projects.find((p) => p.name.toLowerCase() === name.toLowerCase());
+  if (hit) return hit.id;
+  const colors = ["#8C6CFF", "#3EF0B1", "#FF6B8B", "#FFC857", "#4AA8FF", "#FF8A3D"];
+  return saveProject({ name, emoji: "📁", color: colors[projects.length % colors.length] });
+}
+
 // --- Sicherung ---
 
 export async function exportBackup(): Promise<Backup> {
@@ -188,8 +295,10 @@ export async function exportBackup(): Promise<Backup> {
     for (const [k, v] of await t.entries("meta")) meta[String(k)] = v;
     return {
       format: "budgetwerk-backup",
-      version: 1,
+      version: 2,
       created_at: new Date().toISOString(),
+      tasks: await t.all<Task>("tasks"),
+      projects: await t.all<Project>("projects"),
       accounts: await t.all<Account>("accounts"),
       recurring: await t.all<Recurring>("recurring"),
       plan: await t.all<PlanItem>("plan"),
@@ -207,6 +316,8 @@ export async function importBackup(b: Backup) {
     for (const r of b.recurring ?? []) await t.put("recurring", r);
     for (const p of b.plan ?? []) await t.put("plan", p);
     for (const x of b.bookings ?? []) await t.put("bookings", x);
+    for (const x of b.tasks ?? []) await t.put("tasks", x);
+    for (const x of b.projects ?? []) await t.put("projects", x);
     for (const [k, v] of Object.entries(b.meta ?? {})) await t.put("meta", v as string, k);
   });
 }

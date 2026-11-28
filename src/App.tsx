@@ -6,15 +6,17 @@ import { FixedPage } from "./pages/Fixed";
 import { Home } from "./pages/Home";
 import { More } from "./pages/More";
 import { PlanPage } from "./pages/Plan";
+import { TasksPage } from "./pages/Tasks";
 import { syncRecurring } from "./lib/store";
 import { ToastProvider, useRoute, useToast } from "./ui";
 
 const TABS = [
-  { to: "/", label: "Übersicht", icon: <><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></>, match: (r: string) => r === "/" },
+  { to: "/", label: "Start", icon: <><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></>, match: (r: string) => r === "/" },
   { to: "/konten", label: "Konten", icon: <><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></>, match: (r: string) => r.startsWith("/konten") },
   { to: "/fix", label: "Fix", icon: <><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></>, match: (r: string) => r.startsWith("/fix") },
   { to: "/planen", label: "Planen", icon: <><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 6.4"/></>, match: (r: string) => r.startsWith("/planen") },
   { to: "/bargeld", label: "Bargeld", icon: <><path d="M18 6.5A7 7 0 1 0 18 17.5M4 10h10M4 14h10"/></>, match: (r: string) => r.startsWith("/bargeld") },
+  { to: "/aufgaben", label: "Aufgaben", icon: <><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 10l2 2 4-4M8 16h8M9 2v4M15 2v4"/></>, match: (r: string) => r.startsWith("/aufgaben") },
   { to: "/mehr", label: "Mehr", icon: <><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></>, match: (r: string) => r.startsWith("/mehr") },
 ];
 
@@ -29,6 +31,7 @@ function Page({ route }: { route: string }) {
   if (seg[0] === "fix") return <FixedPage />;
   if (seg[0] === "planen") return <PlanPage />;
   if (seg[0] === "bargeld") return <CashPage />;
+  if (seg[0] === "aufgaben") return <TasksPage />;
   if (seg[0] === "mehr") return <More />;
   return <p className="onbg">Seite nicht gefunden.</p>;
 }
